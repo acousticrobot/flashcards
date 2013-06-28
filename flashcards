@@ -11,6 +11,11 @@ options = { verbose: false, file: "sample" }
 
 option_parser = OptionParser.new do |opts|
 
+  executable_name = File.basename($PROGRAM_NAME)
+  opts.banner = "Parse Chinesepod vocab lists into a Mental Case tsv file
+
+  Usage: #{executable_name} [options] file_name"
+
   # Create a switch
   opts.on("-v","--verbose", "print out parsing to terminal") do options[:verbose] = true
   end
