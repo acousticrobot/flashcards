@@ -1,0 +1,125 @@
+#!/usr/bin/env ruby
+# encoding: utf-8
+
+require 'tradsim'
+require 'optparse'
+
+BLANK_LINE = /^\s*$/
+FILE_TYPE = /\.t[s|x][v|t]/
+
+options = { verbose: false, file: "sample" }
+
+option_parser = OptionParser.new do |opts|
+
+  # Create a switch
+  opts.on("-v","--verbose", "print out parsing to terminal") do options[:verbose] = true
+  end
+
+  opts.on( "-f FILE", "--file FILE",
+           "the file name to read from (.txt or .tsv), " +
+           "defaults to tsv with no type supplied") do |file|
+    unless FILE_TYPE.match(file)
+      file += ".tsv"
+    end
+    options[:file] = file
+  end
+end
+
+class Flashcard
+
+  attr_accessor :id, :definition, :pinyin, :simple, :traditional
+
+  def initialize(id, options={})
+    @id = id
+    @definition = options[:definition].gsub(/,/,';')
+    @pinyin = options[:pinyin]
+    @simple = options[:simple]
+    @traditional = options[:traditional]
+  end
+
+  def to_s
+    "#{self.definition}\t#{self.pinyin}\t#{self.simple}\t#{self.traditional}"
+  end
+end
+
+def log( message )
+  if @verbose
+    puts message
+  end
+end
+
+def parse_file( file_s )
+  File.open(file_s, "r") do |file|
+    find_flashcards file
+  end
+end
+
+def print_to_file( file_s, deck )
+  if deck.empty?
+    log "No flashcards to save"
+    return
+  end
+  file_s.gsub!( FILE_TYPE, ".tsv" )
+  File.open( file_s,'w' ) do |file|
+    deck.each do |card|
+      log card.to_s
+      file.puts card.to_s
+    end
+    log "Flashcards saved to: #{file_s}"
+end
+end
+
+def parse_line_array(id, line_array)
+  card = Flashcard.new( id,
+                        { simple: line_array[0],
+                          traditional: Tradsim::to_trad(line_array[0]),
+                          pinyin: line_array[1],
+                          definition: line_array[2],
+                      })
+end
+
+# Run line by line and find the flashcards
+# Look for the first non-blank line and
+# continue to add lines to the card
+# treat empty lines as the end of the flashcard
+# items after the first three lines are stored but not
+# used.
+#
+def find_flashcards(file)
+  deck = Array.new
+  processing_card = false
+  counter = 0
+  flash_lines = []
+  file.readlines.each do |line|
+
+    if !BLANK_LINE.match( line ) and !processing_card
+      processing_card = true
+      flash_lines << line.strip
+
+    elsif BLANK_LINE.match( line ) and processing_card
+      # add to deck
+      deck << parse_line_array( counter, flash_lines )
+      flash_lines = []
+      counter += 1
+      processing_card = false
+
+    elsif !BLANK_LINE.match( line ) and processing_card
+      flash_lines << line.strip
+
+    elsif processing_card
+      # remove white space
+    end
+  end
+
+  # send in the last card at the end of file
+  unless flash_lines.empty?
+    deck << parse_line_array( counter, flash_lines )
+  end
+  deck
+end
+
+option_parser.parse!
+@verbose = options[:verbose]
+log options.inspect
+deck = parse_file options[:file]
+print_to_file options[:file], deck
