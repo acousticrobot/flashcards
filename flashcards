@@ -7,7 +7,7 @@ require 'optparse'
 BLANK_LINE = /^\s*$/
 FILE_TYPE = /\.t[s|x][v|t]/
 
-options = { verbose: false, file: "sample" }
+options = { verbose: false, file: "temp.tsv" }
 
 option_parser = OptionParser.new do |opts|
 
@@ -21,8 +21,9 @@ option_parser = OptionParser.new do |opts|
   end
 
   opts.on( "-f FILE", "--file FILE",
-           "the file name to read from (.txt or .tsv), " +
-           "defaults to tsv with no type supplied") do |file|
+           "the file name to read from (.txt or .tsv),
+\t\t\t\t     defaults to tsv with no type supplied
+\t\t\t\t     default to temp.tsv with no value supplied") do |file|
     unless FILE_TYPE.match(file)
       file += ".tsv"
     end
@@ -54,8 +55,16 @@ def log( message )
 end
 
 def parse_file( file_s )
-  File.open(file_s, "r") do |file|
-    find_flashcards file
+  if File.exist?( file_s )
+    if File.zero?( file_s )
+      abort "Exiting: empty file <#{file_s}>"
+    end
+    File.open(file_s, "r") do |file|
+      find_flashcards file
+      exit
+    end
+  else
+    abort( "Exiting: no such file <#{file_s}>" )
   end
 end
 
