@@ -1,5 +1,7 @@
 #!/usr/bin/env ruby
 # encoding: utf-8
+#
+# version 1.1
 
 require 'tradsim'
 require 'optparse'
@@ -7,7 +9,7 @@ require 'optparse'
 BLANK_LINE = /^\s*$/
 FILE_TYPE = /\.t[s|x][v|t]/
 
-options = { verbose: false, file: "temp.tsv" }
+options = { verbose: false, file: "temp.txt" }
 
 option_parser = OptionParser.new do |opts|
 
@@ -22,10 +24,10 @@ option_parser = OptionParser.new do |opts|
 
   opts.on( "-f FILE", "--file FILE",
            "the file name to read from (.txt or .tsv),
-\t\t\t\t     defaults to tsv with no type supplied
-\t\t\t\t     default to temp.tsv with no value supplied") do |file|
+\t\t\t\t     defaults to txt with no type supplied
+\t\t\t\t     default to temp.txt and saves to temp.tsv with no value supplied") do |file|
     unless FILE_TYPE.match(file)
-      file += ".tsv"
+      file += ".txt"
     end
     options[:file] = file
   end
@@ -60,8 +62,7 @@ def parse_file( file_s )
       abort "Exiting: empty file <#{file_s}>"
     end
     File.open(file_s, "r") do |file|
-      find_flashcards file
-      exit
+      deck = find_flashcards file
     end
   else
     abort( "Exiting: no such file <#{file_s}>" )
@@ -80,7 +81,7 @@ def print_to_file( file_s, deck )
       file.puts card.to_s
     end
     log "Flashcards saved to: #{file_s}"
-end
+  end
 end
 
 def parse_line_array(id, line_array)
@@ -100,12 +101,13 @@ end
 # used.
 #
 def find_flashcards(file)
+  log "finding flashcards..."
   deck = Array.new
   processing_card = false
   counter = 0
   flash_lines = []
   file.readlines.each do |line|
-
+    # at the beginning of a new card
     if !BLANK_LINE.match( line ) and !processing_card
       processing_card = true
       flash_lines << line.strip
@@ -129,6 +131,7 @@ def find_flashcards(file)
   unless flash_lines.empty?
     deck << parse_line_array( counter, flash_lines )
   end
+  log "...deck complete"
   deck
 end
 
