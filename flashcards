@@ -1,12 +1,13 @@
 #!/usr/bin/env ruby
 # encoding: utf-8
 #
-# version 1.1
+# version 1.2
 
 require 'tradsim'
 require 'optparse'
 
-BLANK_LINE = /^\s*$/
+BLANK_LINE_WITH_NOISE = /^\s*$/
+BLANK_LINE = /^(Label|Plus)\s*$/
 FILE_TYPE = /\.t[s|x][v|t]/
 
 options = { verbose: false, file: "temp.txt" }
@@ -19,7 +20,10 @@ option_parser = OptionParser.new do |opts|
   Usage: #{executable_name} [options] file_name"
 
   # Create a switch
-  opts.on("-v","--verbose", "print out parsing to terminal") do options[:verbose] = true
+  opts.on( "-v","--verbose", "print out parsing to terminal" ) do options[:verbose] = true
+  end
+
+  opts.on( "-n","--noise", "match for Chinesepod html noise on blank lines" ) do options[:noise] = true
   end
 
   opts.on( "-f FILE", "--file FILE",
@@ -108,18 +112,18 @@ def find_flashcards(file)
   flash_lines = []
   file.readlines.each do |line|
     # at the beginning of a new card
-    if !BLANK_LINE.match( line ) and !processing_card
+    if !@blank.match( line ) and !processing_card
       processing_card = true
       flash_lines << line.strip
 
-    elsif BLANK_LINE.match( line ) and processing_card
+    elsif @blank.match( line ) and processing_card
       # add to deck
       deck << parse_line_array( counter, flash_lines )
       flash_lines = []
       counter += 1
       processing_card = false
 
-    elsif !BLANK_LINE.match( line ) and processing_card
+    elsif !@blank.match( line ) and processing_card
       flash_lines << line.strip
 
     elsif processing_card
@@ -137,6 +141,11 @@ end
 
 option_parser.parse!
 @verbose = options[:verbose]
+if options[:noise] == true
+  @blank = BLANK_LINE_WITH_NOISE
+else
+  @blank = BLANK_LINE
+end
 log options.inspect
 deck = parse_file options[:file]
 print_to_file options[:file], deck
